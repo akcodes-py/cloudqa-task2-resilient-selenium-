@@ -7,12 +7,15 @@ Accepts a starting URL and a plain-English test. Groq proposes one browser actio
 Prerequisites: Python 3.10+, Chrome, internet access, and your own Groq API key.
 
 ```powershell
+cd cloudqa-task2-ai-test-runner
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 $env:GROQ_API_KEY = 'your-own-key'
 python ai_selenium_runner.py --url 'https://phptravels.com/demo' --test 'Verify the demo page has a Get demo access section' --headless
 ```
+
+`GROQ_API_KEY` is required for an AI-driven run. Create a key in your Groq account, then set it in the same PowerShell terminal with `$env:GROQ_API_KEY = 'gsk-...'`. Do not commit the key, paste it into a test JSON file, or share it in a recording. The runner checks for the environment variable and reports an error if it is missing.
 
 To show Chrome during the recording, omit `--headless`. If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead. Selenium Manager downloads ChromeDriver if needed.
 
