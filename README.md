@@ -33,11 +33,21 @@ $env:TEST_CONTEXT = 'Username standard_user, password secret_sauce'
 python ai_selenium_runner.py --url 'https://www.saucedemo.com/' --test 'Log in and verify Products is displayed' --headless
 ```
 
-`GROQ_MODEL` overrides the default `llama-3.3-70b-versatile`; availability and rate limits are subject to your Groq account. `--max-steps` defaults to 12. `python -m unittest -v` runs local checks without a Groq key. The tool returns exit code 0 for PASS, 1 for FAIL; a failure screenshot goes to `artifacts/failure.png`.
+`GROQ_MODEL` overrides the default `openai/gpt-oss-20b` used for the verified run; model availability and rate limits depend on your Groq account. `--max-steps` defaults to 12. `python -m unittest -v` runs local checks. The tool returns exit code 0 for PASS, 1 for FAIL; a failure screenshot goes to `artifacts/failure.png`.
 
 ## Approach and limitations
 
-The Groq planner receives the plain-English scenario, current URL/headings/visible text, up to 120 visible interactive controls, and action history. It chooses one allowlisted browser action at a time. Selenium performs the action and re-observes the page. A PASS requires a Selenium-verified visible-text or URL assertion; a model response saying “pass” is not enough. Without a key, the limited fallback only checks visible text and cannot autonomously follow new instructions.
+The Groq planner receives the plain-English scenario, current URL/headings/visible text, up to 60 visible interactive controls, and action history. It chooses one allowlisted browser action at a time. Selenium performs the action and re-observes the page. A PASS requires a Selenium-verified visible-text or URL assertion; a model response saying “pass” is not enough. Without a key, the limited fallback only checks visible text and cannot autonomously follow new instructions.
+
+## Verification status
+
+Verified on Windows using Python 3.14, Selenium/Chrome, and Groq `openai/gpt-oss-20b`: the command below returned PASS, with Selenium verifying the visible phrase `Get your demo access`. Three local unit tests also passed.
+
+```powershell
+python ai_selenium_runner.py --url 'https://phptravels.com/demo' --test 'Verify the demo page has a Get demo access section' --headless
+```
+
+Keep your own key in the ignored local `.env`; do not commit it. The key used during development was posted in chat and should be revoked and replaced.
 
 This is a prototype: an LLM can choose a weak assertion, and visible-text assertions do not establish account identity or server-side correctness. Inspect the trace. Captchas, anti-bot checks, iframes, shadow roots, canvas/custom widgets and ambiguous flows may fail. The page snapshot and any supplied context are sent to Groq; do not use sensitive credentials or pages without permission. PHPTRAVELS currently requests demo credentials through a form; this example checks the public page without claiming to have those credentials. Details: `dicison.md`.
 
