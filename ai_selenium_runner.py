@@ -26,16 +26,16 @@ let n = 0;
 for (const el of document.querySelectorAll('[data-qa-agent-id]')) el.removeAttribute('data-qa-agent-id');
 const elements = [];
 for (const el of nodes) {
-  if (!visible(el) || el.disabled || elements.length >= 120) continue;
+  if (!visible(el) || el.disabled || elements.length >= 60) continue;
   el.setAttribute('data-qa-agent-id', String(++n));
   elements.push({id:n, tag:el.tagName.toLowerCase(), type:el.getAttribute('type') || '',
     text:(el.innerText || '').trim().slice(0,90), label:(el.labels?.[0]?.innerText || '').trim().slice(0,90),
     placeholder:el.getAttribute('placeholder') || '', ariaLabel:el.getAttribute('aria-label') || '',
-    href:el.getAttribute('href') || '', options: el.tagName === 'SELECT' ? [...el.options].map(o => o.text.trim()).slice(0,30) : []});
+    href:el.getAttribute('href') || '', options: el.tagName === 'SELECT' ? [...el.options].map(o => o.text.trim()).slice(0,12) : []});
 }
 return {url: location.href, title:document.title,
-  headings:[...document.querySelectorAll('h1,h2,h3')].filter(visible).map(e=>e.innerText.trim()).slice(0,20),
-  visibleText:(document.body?.innerText || '').slice(0,9000), elements};
+  headings:[...document.querySelectorAll('h1,h2,h3')].filter(visible).map(e=>e.innerText.trim()).slice(0,12),
+  visibleText:(document.body?.innerText || '').slice(0,1800), elements};
 """
 
 SYSTEM_PROMPT = """You are a browser QA planner. Given the test case, prior actions and the CURRENT webpage snapshot, output exactly one next step as JSON.
@@ -165,6 +165,7 @@ def main():
     context = args.context
     # Example: CONTEXT='Username standard_user, password secret_sauce'
     context = " ".join(filter(None, [context, os.environ.get("TEST_CONTEXT", "")]))
+    load_dotenv(Path(__file__).resolve().parent / ".env")
     if os.environ.get("GROQ_API_KEY"):
         # Optional AI planner: activated only when the user independently configures Groq.
         from groq import Groq
@@ -213,6 +214,20 @@ def run_without_model(url, test_case, headless=False):
         return False
     finally:
         driver.quit()
+
+
+def load_dotenv(path):
+    """Read simple KEY=value entries without overriding existing environment variables."""
+    if not path.is_file():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip().strip("\"'")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 if __name__ == "__main__":

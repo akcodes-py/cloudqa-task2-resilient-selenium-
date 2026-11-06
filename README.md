@@ -15,7 +15,14 @@ $env:GROQ_API_KEY = 'your-valid-groq-key'
 python ai_selenium_runner.py --url 'https://phptravels.com/demo' --test 'Verify the demo page has a Get demo access section' --headless
 ```
 
-`GROQ_API_KEY` is required for the plain-English planner. Set it in the same PowerShell session as the run. Never commit the key or show it in the recording. If no key is set, a simple visible-text fallback is available, but it is **not** the full AI test-runner task and cannot carry out arbitrary instructions.
+`GROQ_API_KEY` is required for the plain-English planner. You can set it in the PowerShell session, or save it to a local `.env` file in this project directory (the file is git-ignored):
+
+```text
+GROQ_API_KEY=your-valid-groq-key
+GROQ_MODEL=openai/gpt-oss-20b
+```
+
+Never commit the key or show it in the recording. If no key is set, a simple visible-text fallback is available, but it is **not** the full AI test-runner task and cannot carry out arbitrary instructions.
 
 To show Chrome during the recording, omit `--headless`. If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead. Selenium Manager downloads ChromeDriver if needed.
 
