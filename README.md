@@ -4,22 +4,21 @@ Accepts a starting URL and a plain-English test. Groq proposes one browser actio
 
 ## Windows setup
 
-Prerequisites: Python 3.10+, Chrome, internet access, and your own Groq API key.
+Prerequisites: Python 3.10+ and Chrome. The basic visible-text check requires no AI provider or API key; Groq is an optional planner for multi-step flows.
 
 ```powershell
 cd cloudqa-task2-ai-test-runner
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-$env:GROQ_API_KEY = 'your-own-key'
 python ai_selenium_runner.py --url 'https://phptravels.com/demo' --test 'Verify the demo page has a Get demo access section' --headless
 ```
 
-`GROQ_API_KEY` is required for an AI-driven run. Create a key in your Groq account, then set it in the same PowerShell terminal with `$env:GROQ_API_KEY = 'gsk-...'`. Do not commit the key, paste it into a test JSON file, or share it in a recording. The runner checks for the environment variable and reports an error if it is missing.
+The above simple PHPTRAVELS check runs without any AI API. Without a key, the runner checks a plainly stated phrase in visible browser text; it does not claim to autonomously perform logins or arbitrary actions. To optionally enable AI-planned flows using Groq, set `$env:GROQ_API_KEY = 'your-key'` in that same PowerShell terminal. Never commit or record the key. Groq model availability is account-dependent.
 
 To show Chrome during the recording, omit `--headless`. If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` instead. Selenium Manager downloads ChromeDriver if needed.
 
-Second website example (public SauceDemo sample credentials; do **not** use real passwords on the CLI):
+Optional Groq-only second-site login example (public SauceDemo sample credentials; do **not** use real passwords on the CLI):
 
 ```powershell
 $env:TEST_CONTEXT = 'Username standard_user, password secret_sauce'
@@ -30,7 +29,7 @@ python ai_selenium_runner.py --url 'https://www.saucedemo.com/' --test 'Log in a
 
 ## Approach and limitations
 
-The snapshot contains current URL, headings, visible body text, and up to 120 visible interactive controls with short-lived numeric IDs. After every action, it observes and replans. Only an allowlisted action can be executed, and a model-suggested assertion must actually succeed in the browser. The runner does not accept model text that merely says “pass”.
+In optional AI mode, the snapshot contains current URL, headings, visible body text, and up to 120 visible interactive controls with short-lived numeric IDs. After every action, it observes and replans. Only an allowlisted action can be executed, and a model-suggested assertion must actually succeed in the browser. The runner does not accept model text that merely says “pass”. Without a key, it only checks the requested visible phrase and does not attempt a login.
 
 This is a prototype: an LLM can choose a weak assertion, and visible-text assertions do not establish account identity or server-side correctness. Inspect the trace. Captchas, anti-bot checks, iframes, shadow roots, canvas/custom widgets and ambiguous flows may fail. The page snapshot and any supplied context are sent to Groq; do not use sensitive credentials or pages without permission. PHPTRAVELS currently requests demo credentials through a form; this example checks the public page without claiming to have those credentials. Details: `dicison.md`.
 

@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -160,17 +161,58 @@ def main():
     args = parser.parse_args()
     if args.max_steps < 1 or args.max_steps > 30:
         parser.error("--max-steps must be between 1 and 30")
-    if not os.environ.get("GROQ_API_KEY"):
-        parser.error("Set GROQ_API_KEY in your environment; do not paste it into code")
     validate_url(args.url)
-    from groq import Groq
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
     context = args.context
     # Example: CONTEXT='Username standard_user, password secret_sauce'
     context = " ".join(filter(None, [context, os.environ.get("TEST_CONTEXT", "")]))
-    ok = run(args.url, args.test, client, os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
-             context=context, max_steps=args.max_steps, headless=args.headless)
+    if os.environ.get("GROQ_API_KEY"):
+        # Optional AI planner: activated only when the user independently configures Groq.
+        from groq import Groq
+        client = Groq(api_key=os.environ["GROQ_API_KEY"])
+        ok = run(args.url, args.test, client, os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                 context=context, max_steps=args.max_steps, headless=args.headless)
+    else:
+        print("No GROQ_API_KEY configured; running the Selenium-only natural-language smoke flow.")
+        ok = run_without_model(args.url, args.test, headless=args.headless)
     return 0 if ok else 1
+
+
+def run_without_model(url, test_case, headless=False):
+    """Offline/no-key generic basic navigation and visible-assertion mode."""
+    options = webdriver.ChromeOptions()
+    if headless:
+        options.add_argument("--headless=new")
+    driver = webdriver.Chrome(options=options)
+    try:
+        driver.set_page_load_timeout(30)
+        driver.get(validate_url(url))
+        # Extract a simple user-specified expectation after common verification wording.
+        match = re.search(r"(?:verify|check|confirm|ensure|assert)\s+(?:that\s+)?(.+)$", test_case, re.I)
+        expected = match.group(1).strip(" .?!'") if match else ""
+        expected = re.sub(r"^the\s+demo\s+page\s+has\s+(?:a\s+)?", "", expected, flags=re.I)
+        expected = re.sub(r"^(?:the\s+)?(?:page|website|site)\s+(?:shows?|contains?)\s+", "", expected, flags=re.I)
+        expected = re.sub(r"\s+(?:is|are)\s+(?:shown|visible|displayed|present|loaded)\.?$", "", expected, flags=re.I)
+        if not expected:
+            raise ValueError("Without an AI API key, give a simple visible-content test, e.g. 'Verify the page shows Get demo access'")
+        # Match against exact text or a reasonable distinctive phrase; do not infer login credentials/actions.
+        expected = re.sub(r"^(?:the\s+)?(?:text|heading|section|button)\s+", "", expected, flags=re.I)
+        expected = re.sub(r"\s+section$", "", expected, flags=re.I)
+        try:
+            WebDriverWait(driver, 10).until(lambda d: expected.casefold() in d.find_element(By.TAG_NAME, "body").text.casefold())
+            print(f"PASS: Page text contains {expected!r}")
+            return True
+        except TimeoutException as exc:
+            raise AssertionError(f"Visible page text does not contain {expected!r}") from exc
+    except Exception as exc:
+        print(f"FAIL: {type(exc).__name__}: {exc}", file=sys.stderr)
+        Path("artifacts").mkdir(exist_ok=True)
+        try:
+            driver.save_screenshot("artifacts/failure.png")
+        except Exception:
+            pass
+        return False
+    finally:
+        driver.quit()
 
 
 if __name__ == "__main__":
