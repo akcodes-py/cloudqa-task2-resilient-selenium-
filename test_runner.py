@@ -17,6 +17,12 @@ class PlanTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_decision({"action": "click", "element_id": 10}, state)
 
+    def test_validate_and_solve_simple_math_prompt(self):
+        state = {"elements": [{"id": 3, "tag": "input", "type": "text"}]}
+        decision = validate_decision({"action": "solve_math", "prompt": "5 + 5 =", "element_id": 3}, state)
+        self.assertEqual(decision["prompt"], "5 + 5 =")
+        self.assertIn("solve_math", __import__("ai_selenium_runner").ACTIONS)
+
     def test_browser_assertion_not_model_claim(self):
         options = webdriver.ChromeOptions()
         options.add_argument("--headless=new")
